@@ -1,0 +1,69 @@
+using System;
+using System.Collections.Generic;
+using System.Threading;
+
+namespace MyMUD
+{
+    public class GameLoop
+    {
+        private readonly int _tickRate = 10; // ticks per second
+        private readonly int _tickDuration; // milliseconds per tick
+        private readonly List<IGameEvent> _eventQueue = new List<IGameEvent>();
+        private readonly ILogger _logger;
+        private readonly GameState _gameState;
+
+        public GameLoop(ILogger logger)
+        {
+            _logger = logger;
+            _gameState = new GameState();
+            _tickDuration = 1000 / _tickRate; // calculate tick duration
+        }
+
+        public void Run()
+        {
+            while (true)
+            {
+                HandleEvents();
+                _gameState.Update();
+                _logger.Log("Game state: " + _gameState);
+                Thread.Sleep(_tickDuration);
+            }
+        }
+
+        private void HandleEvents()
+        {
+            foreach (var @event in _eventQueue)
+            {
+                @event.Handle(_gameState);
+            }
+            _eventQueue.Clear();
+        }
+    }
+
+    public interface IGameEvent
+    {
+        void Handle(GameState gameState);
+    }
+
+    public class GameState
+    {
+        public override string ToString()
+        {
+            return "Game state";
+        }
+    }
+
+    public interface ILogger
+    {
+        void Log(string message);
+    }
+
+    public class ConsoleLogger : ILogger
+    {
+        public void Log(string message)
+        {
+            Console.WriteLine(message);
+        }
+    }
+}
+

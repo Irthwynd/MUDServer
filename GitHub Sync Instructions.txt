@@ -1,0 +1,5 @@
+Make changes to your code: Work on your project, make changes, add new files, etc.
+
+Commit your changes: Run git add . to stage all changes, and then git commit -m "Meaningful commit message" to commit your changes with a descriptive message.
+
+Push your changes to GitHub: Run git push origin master to push your committed changes to your GitHub repository.

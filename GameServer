@@ -1,0 +1,37 @@
+using System;
+using System.Threading.Tasks;
+
+namespace MyMUD
+{
+    class GameStart
+    {
+/*************  ✨ Windsurf Command ⭐  *************/
+/// <summary>
+/// Entry point for the MUD server application. Initializes logging, game loop, and network manager.
+/// Starts the network listener and game loop as asynchronous tasks, and keeps the application 
+/// running until both tasks complete.
+/// </summary>
+/// <param name="args">Command-line arguments passed to the application.</param>
+/// <returns>A Task representing the asynchronous operation.</returns>
+
+/*******  cec152bb-d728-426d-a54c-4a459d13e0b8  *******/
+        static async Task Main(string[] args)
+        {
+        ConsoleLogger logger = new ConsoleLogger();
+        GameLoop gameLoop = new GameLoop(logger);
+
+        NetworkManager networkManager = new NetworkManager(4000);
+
+        // Run the network listener in the background
+        Task networkTask = networkManager.StartListeningAsync();
+
+        // Run the game loop on a separate task
+        Task gameLoopTask = Task.Run(() => gameLoop.Run());
+
+        // Keep the application running until both tasks finish
+        await Task.WhenAll(networkTask, gameLoopTask);
+
+        Console.WriteLine("Server stopped.");
+        }
+    }
+}
