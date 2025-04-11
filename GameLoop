@@ -20,9 +20,9 @@ namespace MUDServer.Core
             _tickDuration = 1000 / _tickRate; // calculate tick duration
         }
 
-        public void Run()
+        public void Run(CancellationToken cancellationToken)
         {
-            while (true)
+            while (!cancellationToken.IsCancellationRequested)
             {
                 HandleEvents();
                 _gameState.Update();
