@@ -1,8 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using MUDServer.Interfaces; // Assuming this namespace exists in your project
 
-namespace MyMUD
+namespace MUDServer.Core
 {
     public class GameLoop
     {

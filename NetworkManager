@@ -1,104 +1,113 @@
-public class NetworkManager
-{
-    private TcpListener _listener;
-    private int _port = 4000; // Choose a port for your MUD server
+using System;
+using System.Net;
+using System.Net.Sockets;
+using System.Threading.Tasks;
 
-public NetworkManager(int port = 4000)
-{
-    _port = port;
-    _listener = new TcpListener(IPAddress.Any, _port);
-}
+namespace MUDServer.Networking
 
-public async Task StartListeningAsync()
 {
-    try
+    public class NetworkManager
     {
-        await _listener.StartAsync();
+        private TcpListener _listener;
+        private int _port = 4000; // Choose a port for your MUD server
 
-        while (true)
+        public NetworkManager(int port = 4000)
         {
-            Console.WriteLine("Waiting for a client connection...");
-            TcpClient client = await _listener.AcceptTcpClientAsync();
-            Console.WriteLine($"Client connected from {client.Client.RemoteEndPoint}");
-
-            // Handle the connected client on a separate task
-            Task clientTask = Task.Run(() => HandleClient(client));
+            _port = port;
+            _listener = new TcpListener(IPAddress.Any, _port);
         }
-    }
-    catch (SocketException e)
-    {
-        Console.WriteLine($"SocketException: {e}");
-    }
-    finally
-    {
-        // ...
-    }
-}
 
-private async Task HandleClient(TcpClient client)
-{
-    Console.WriteLine($"Handling client: {client.Client.RemoteEndPoint}");
-
-    // Get the network stream for reading and writing data.
-    NetworkStream stream = client.GetStream();
-
-    // Send a welcome message to the client.
-    string welcomeMessage = "Welcome to the MUD!\r\n"; // Use \r\n for line endings in Telnet
-    byte[] msgBuffer = System.Text.Encoding.ASCII.GetBytes(welcomeMessage);
-    await stream.WriteAsync(msgBuffer, 0, msgBuffer.Length);
-
-    // Create a buffer to store incoming data from the client.
-    byte[] buffer = new byte[1024];
-
-    while (true)
-    {
-        try
+        public async Task StartListeningAsync()
         {
-            // Read incoming data from the client.
-            int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
-
-            // If no data was read, the client has disconnected.
-            if (bytesRead == 0)
+            try
             {
-                break;
+                await _listener.StartAsync();
+
+                while (true)
+                {
+                    Console.WriteLine("Waiting for a client connection...");
+                    TcpClient client = await _listener.AcceptTcpClientAsync();
+                    Console.WriteLine($"Client connected from {client.Client.RemoteEndPoint}");
+
+                    // Handle the connected client on a separate task
+                    Task clientTask = Task.Run(() => HandleClient(client));
+                }
+            }
+            catch (SocketException e)
+            {
+                Console.WriteLine($"SocketException: {e}");
+            }
+            finally
+            {
+                // ...
+            }
+        }
+
+        private async Task HandleClient(TcpClient client)
+        {
+            Console.WriteLine($"Handling client: {client.Client.RemoteEndPoint}");
+
+            // Get the network stream for reading and writing data.
+            NetworkStream stream = client.GetStream();
+
+            // Send a welcome message to the client.
+            string welcomeMessage = "Welcome to the MUD!\r\n"; // Use \r\n for line endings in Telnet
+            byte[] msgBuffer = System.Text.Encoding.ASCII.GetBytes(welcomeMessage);
+            await stream.WriteAsync(msgBuffer, 0, msgBuffer.Length);
+
+            // Create a buffer to store incoming data from the client.
+            byte[] buffer = new byte[1024];
+
+            while (true)
+            {
+                try
+                {
+                    // Read incoming data from the client.
+                    int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
+
+                    // If no data was read, the client has disconnected.
+                    if (bytesRead == 0)
+                    {
+                        break;
+                    }
+
+                    // Process the client's input (commands).
+                    string clientInput = System.Text.Encoding.ASCII.GetString(buffer, 0, bytesRead);
+                    Console.WriteLine($"Client {client.Client.RemoteEndPoint} sent: {clientInput}");
+
+                    // Send a response back to the client (game output).
+                    string response = ProcessClientInput(clientInput);
+                    byte[] responseBuffer = System.Text.Encoding.ASCII.GetBytes(response);
+                    await stream.WriteAsync(responseBuffer, 0, responseBuffer.Length);
+                }
+                catch (IOException e)
+                {
+                    Console.WriteLine($"IOException: {e}");
+                    break;
+                }
             }
 
-            // Process the client's input (commands).
-            string clientInput = System.Text.Encoding.ASCII.GetString(buffer, 0, bytesRead);
-            Console.WriteLine($"Client {client.Client.RemoteEndPoint} sent: {clientInput}");
+            // Close the connection.
+            try
+            {
+                client.Close();
+            }
+            catch (ObjectDisposedException)
+            {
+                // Client is already disconnected, ignore the exception
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Error closing client connection: {e}");
+            }
+            Console.WriteLine($"Client {client.Client.RemoteEndPoint} disconnected.");
+        }
 
-            // Send a response back to the client (game output).
-            string response = ProcessClientInput(clientInput);
-            byte[] responseBuffer = System.Text.Encoding.ASCII.GetBytes(response);
-            await stream.WriteAsync(responseBuffer, 0, responseBuffer.Length);
-        }
-        catch (IOException e)
+        private string ProcessClientInput(string clientInput)
         {
-            Console.WriteLine($"IOException: {e}");
-            break;
+            // This method should process the client's input (commands) and return a response (game output).
+            // For now, let's just echo the client's input back to them.
+            return $"You typed: {clientInput}\r\n";
         }
-    }
-
-    // Close the connection.
-        try
-        {
-            client.Close();
-        }
-        catch (ObjectDisposedException)
-        {
-            // Client is already disconnected, ignore the exception
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine($"Error closing client connection: {e}");
-        }
-    Console.WriteLine($"Client {client.Client.RemoteEndPoint} disconnected.");
-}
-
-    private string ProcessClientInput(string clientInput)
-    {
-        // This method should process the client's input (commands) and return a response (game output).
-        // For now, let's just echo the client's input back to them.
-        return $"You typed: {clientInput}\r\n";
     }
 }
