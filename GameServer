@@ -1,9 +1,9 @@
 using System;
-using System.Threading; // Import the Threading namespace for CancellationTokenSource
+using System.Threading;
 using System.Threading.Tasks;
 using MUDServer.Core;
 using MUDServer.Networking;
-using MUDServer.Interfaces; // Assuming this namespace exists
+using MUDServer.Interfaces;
 
 namespace MUDServer
 {
@@ -11,32 +11,53 @@ namespace MUDServer
     {
         static async Task Main(string[] args)
         {
-            // Create a CancellationTokenSource. This object can signal cancellation.
+            // Create a CancellationTokenSource. This allows us to signal cancellation to background tasks.
             CancellationTokenSource cts = new CancellationTokenSource();
 
-            // Instantiate the logger and game loop, passing the logger.
+            // Instantiate the console logger for application-wide logging.
             ConsoleLogger logger = new ConsoleLogger();
+
+            // Instantiate the game loop, which manages the game's ticking and event processing.
             GameLoop gameLoop = new GameLoop(logger);
 
-            // Instantiate the network manager, potentially needing a reference to the gameLoop later.
+            // Instantiate the network manager, responsible for handling incoming client connections.
             NetworkManager networkManager = new NetworkManager(4000);
 
-            // Run the network listener in the background. It doesn't directly need the cancellation token in its current implementation.
+            // Start the network listener asynchronously in the background.
+            // This task will continue to run, accepting new client connections.
             Task networkTask = networkManager.StartListeningAsync();
 
-            // Run the game loop in the background, passing the cancellation token.
+            // Start the game loop asynchronously in the background, passing the cancellation token.
+            // The game loop will continue to run until cancellation is requested.
             Task gameLoopTask = Task.Run(() => gameLoop.Run(cts.Token));
 
-            // Keep the application running until a key is pressed to trigger shutdown.
+            // Inform the user how to stop the server.
             Console.WriteLine("Press any key to stop the server...");
+
+            // Wait for the user to press a key on the console.
             Console.ReadKey();
 
-            // Request cancellation of the tasks. This will set cts.Token.IsCancellationRequested to true.
+            // Inform the user that the server is shutting down.
+            Console.WriteLine("Shutting down server...");
+
+            // Request cancellation of all background tasks that are observing this token.
+            // This will signal the game loop to stop its main execution loop.
             cts.Cancel();
 
-            // Wait for both the network task and the game loop task to complete (or at least acknowledge cancellation).
-            await Task.WhenAll(networkTask, gameLoopTask);
+            // Use a try-catch block to handle any exceptions that might occur while waiting for tasks to complete.
+            try
+            {
+                // Wait for both the network listener task and the game loop task to complete.
+                // Task.WhenAll returns a task that completes when all of the supplied tasks have completed.
+                await Task.WhenAll(networkTask, gameLoopTask);
+            }
+            catch (Exception ex)
+            {
+                // If any exception occurred during the shutdown process, log the error message.
+                Console.WriteLine($"An error occurred during shutdown: {ex.Message}");
+            }
 
+            // Inform the user that the server has stopped.
             Console.WriteLine("Server stopped.");
         }
     }
